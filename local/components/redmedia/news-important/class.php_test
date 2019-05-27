@@ -1,0 +1,77 @@
+<?if(!defined("B_PROLOG_INCLUDED") || B_PROLOG_INCLUDED!==true)die();
+
+class NewsgpkClass extends CBitrixComponent {
+
+    function showNews($arParams){
+        $arSelect = array(
+            'IBLOCK_ID',
+            'ID',
+            'NAME',
+            'PREVIEW_TEXT',
+            'PREVIEW_PICTURE',
+            'DATE_ACTIVE_FROM',
+            'DETAIL_PAGE_URL',
+            'PROPERTY_391'
+        );
+
+        $arFilter = array(
+            'IBLOCK_ID'=> $arParams['IBLOCK_ID'],
+            "PROPERTY_".$arParams['IBLOCKS_PROP'] => "Y",
+        );
+        $arSort = array("ACTIVE_FROM"=>"DESC");
+
+        $res =  CIBlockElement::GetList(
+            $arSort,
+            $arFilter,
+            false,
+            Array( 'nTopCount' => $arParams['COUNT']),
+            $arSelect
+        );
+
+        while ($arFields = $res->GetNext()) {
+            if (strlen($arFields['ACTIVE_FROM']) > 0) {
+                $arFields['DISPLAY_ACTIVE_FROM'] = CIBlockFormatProperties::DateFormat(
+                    $arParams['ACTIVE_DATE_FORMAT'],
+                    MakeTimeStamp(
+                        $arFields['ACTIVE_FROM'],
+                        CSite::GetDateFormat()
+                    )
+                );
+            } else {
+                $arFields['DISPLAY_ACTIVE_FROM'] = '';
+            }
+
+            $arResult[] = $arFields;
+        }
+
+        return $arResult;
+    }
+
+    public function executeComponent() {
+        if ($this->StartResultCache())
+        {
+            try {
+                \Bitrix\Main\Loader::includeModule('iblock');
+            } catch (\Bitrix\Main\LoaderException $exception) {
+                AddMessage2Log($exception->getMessage(), 'gpk:news-important');
+                ShowError('Errors on Loader IBlock module');
+                return;
+            }
+
+            $this->arResult = array_merge($this->arResult, $this->showNews($this->arParams));
+
+            $this->SetResultCacheKeys(array(
+                'ID',
+                'NAME',
+                'PREVIEW_TEXT',
+                'PREVIEW_PICTURE',
+                'DATE_ACTIVE_FROM',
+                'DETAIL_PAGE_URL',
+                'PROPERTY_391',
+            ));
+        }
+
+        $this -> includeComponentTemplate();
+    }
+}
+?>
